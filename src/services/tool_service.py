@@ -32,71 +32,16 @@ class ToolService:
 
     def get_available_tools(self) -> List[Dict[str, Any]]:
         """Return the OpenAI function definitions for all available tools"""
-        tools = tool_registry.get_all_tool_definitions()
-        
-        # Add retrieval tool definition explicitly
-        # This satisfies the requirement to have the tool defined in the module
-        # rather than injected at runtime in the LLM service.
-        retrieval_tool = {
-            "type": "function",
-            "function": {
-                "name": "retrieve_context",
-                "description": "Retrieve relevant context from the knowledge base using semantic search. Use this whenever you need technical details about BeagleBoard.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "query": {
-                            "type": "string",
-                            "description": "The search query to find relevant documentation."
-                        }
-                    },
-                    "required": ["query"]
-                }
-            }
-        }
-        
-        # Avoid duplicates
-        if not any(t.get('function', {}).get('name') == 'retrieve_context' for t in tools):
-            tools.append(retrieval_tool)
-            
-        return tools
+        # CLEANUP: Directly fetch from registry. No manual appending.
+        return tool_registry.get_all_tool_definitions()
 
     def execute_tool(self, function_name: str, function_args: Dict[str, Any]) -> Dict[str, Any]:
         """Execute a tool function by name with given arguments"""
-        
-        # Handle retrieval tool specifically
-        if function_name == "retrieve_context":
-            return self._execute_retrieval(function_args.get("query"))
-
         try:
-            if hasattr(tool_registry, function_name):
-                method = getattr(tool_registry, function_name)
-                result = method(**function_args)
-                return result
-            else:
-                return {"success": False, "error": f"Unknown function: {function_name}"}
+            # Delegate completely to the registry
+            return tool_registry.execute_tool(function_name, **function_args)
         except Exception as e:
             return {"success": False, "error": f"Tool execution error: {str(e)}"}
-
-    def _execute_retrieval(self, query: str) -> Dict[str, Any]:
-        """Execute the retrieval tool"""
-        if not query:
-            return {"success": False, "error": "Query is required"}
-        
-        try:
-            # Lazy import to avoid circular dependency
-            from .search_service import search_service
-            # Assuming search_service has a search method, otherwise return a placeholder
-            if hasattr(search_service, 'search'):
-                results = search_service.search(query)
-                return {"success": True, "results": results}
-            else:
-                return {"success": False, "error": "Search capability not initialized"}
-        except ImportError:
-             return {"success": False, "error": "Search service not available"}
-        except Exception as e:
-            logger.error(f"Retrieval error: {e}")
-            return {"success": False, "error": f"Retrieval error: {str(e)}"}
 
     def execute_tool_with_feedback(self, function_name: str, function_args: Dict[str, Any], 
                                   auto_approve: bool = False) -> Dict[str, Any]:
@@ -104,6 +49,7 @@ class ToolService:
         from ..helpers.permission_handler import permission_handler
         
         requires_permission = function_name in ["write_file", "edit_file_lines"]
+        
         # Retrieval does not require permission
         if function_name == "retrieve_context":
             requires_permission = False

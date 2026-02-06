@@ -76,7 +76,7 @@ class LLMService:
 
         tools = tools or []
         
-        # NOTE: Manual tool injection removed here because ToolService now handles it.
+       
 
         try:
             completion = client.chat.completions.create(
