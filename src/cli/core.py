@@ -11,6 +11,8 @@ from pathlib import Path
 
 from ..qa_system import QASystem
 from ..config import ConfigManager, COLLECTION_NAME
+from .display import DisplayManager
+from ..services.doctor_service import DoctorService
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -128,17 +130,17 @@ class BeagleMindCLI:
         available_backends = self.config_manager.get_backends()
 
         if backend not in available_backends:
-            display.show_error(f"Invalid backend: {backend}. Available: {', '.join(available_backends)}")
-            return None
+            display.show_warning(f"Backend '{backend}' not recognized. Falling back to default backend.")
+            backend = self.config_manager.get("default_backend", "groq")
 
         available_models = self.config_manager.get_models(backend)
         default_model = available_models[0] if available_models else "unknown-model"
         model = model or self.config_manager.get("default_model", default_model)
         temperature = temperature if temperature is not None else self.config_manager.get("default_temperature", 0.3)
-
+        
         if model not in available_models:
-            display.show_error(f"Model '{model}' not available for backend '{backend}'")
-            return None
+            display.show_warning(f"Model '{model}' not available for backend '{backend}'. Falling back to '{default_model}'.")
+            model = self.config_manager.get("default_model", default_model)
 
         return {
             "backend": backend,
@@ -174,3 +176,13 @@ class BeagleMindCLI:
             show_sources=show_sources,
             use_tools=use_tools
         )
+
+    def doctor(self):
+        """Run system diagnostics and display results"""
+        display = DisplayManager()
+        doctor = DoctorService()
+        
+        with display.show_spinner("Running diagnostics..."):
+            results = doctor.run_all_checks()
+        
+        display.show_doctor_results(results)

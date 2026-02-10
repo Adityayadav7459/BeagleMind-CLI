@@ -104,3 +104,10 @@ def ingest(path):
     
     display.show_info(f"Ingesting documentation from: {path}")
     # TODO: Connect this to the actual ingestion logic in BeagleMindCLI
+
+
+@cli.command("doctor")
+def doctor():
+    """Diagnose BeagleMind setup and connectivity issues"""
+    beaglemind = BeagleMindCLI()
+    beaglemind.doctor()
