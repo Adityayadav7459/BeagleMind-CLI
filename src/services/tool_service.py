@@ -32,7 +32,6 @@ class ToolService:
 
     def get_available_tools(self) -> List[Dict[str, Any]]:
         """Return the OpenAI function definitions for all available tools"""
-        # CLEANUP: Directly fetch from registry. No manual appending.
         return tool_registry.get_all_tool_definitions()
 
     def execute_tool(self, function_name: str, function_args: Dict[str, Any]) -> Dict[str, Any]:

@@ -7,7 +7,7 @@ from typing import List
 
 from .core import BeagleMindCLI
 from ..config import ConfigManager
-from .display import DisplayManager  # <--- FIXED: At the top level
+from .display import DisplayManager
 
 
 def get_available_backends() -> List[str]:
